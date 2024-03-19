@@ -29,9 +29,9 @@ make run
 ### Run test
 
 ```shell
-# Make sure have ran `make build`
+# Make sure you have run `Run Service` above
 make cli
-go test --cover
+make test
 ```
 
 > Type `exit` and enter to quit from shell.
