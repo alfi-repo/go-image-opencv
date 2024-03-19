@@ -118,13 +118,13 @@ components:
                 x-stoplight:
                   id: 10lix2lwl4spt
                 minimum: 10
-                maximum: 10000
+                maximum: 1000
               length:
                 type: integer
                 x-stoplight:
                   id: 3mj036q7fld9q
                 minimum: 10
-                maximum: 10000
+                maximum: 1000
     CompressRequest:
       content:
         multipart/form-data:
