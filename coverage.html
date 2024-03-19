@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>go-image-opencv: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">go-image-opencv/handler.go (80.7%)</option>
+				
+				<option value="file1">go-image-opencv/imaging.go (91.7%)</option>
+				
+				<option value="file2">go-image-opencv/main.go (0.0%)</option>
+				
+				<option value="file3">go-image-opencv/server.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bufio"
+        "fmt"
+        "github.com/labstack/echo/v4"
+        "io"
+        "log"
+        "net/http"
+        "slices"
+        "strconv"
+)
+
+// getImageFromRequest parse image from request and do validate.
+// return image type and image bytes
+func getImageFromRequest(c echo.Context, imageFormName string, acceptedImageTypes []string) (string, []byte, error) <span class="cov8" title="1">{
+        // Check form post.
+        formFileHeader, err := c.FormFile(imageFormName)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", nil, c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: ErrFileNotFound.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">formFileObject, err := formFileHeader.Open()
+        if err != nil </span><span class="cov0" title="0">{
+                return "", nil, c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: ErrOpenFile.Error(),
+                })
+        }</span>
+        <span class="cov8" title="1">defer formFileObject.Close()
+
+        // Check if the uploaded file is not larger than 1MB.
+        if formFileHeader.Size &gt; int64(1*1024*1024) </span><span class="cov8" title="1">{
+                return "", nil, c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: fmt.Sprintf("%s. Submitted file is %d bytes", ErrFileLargerThan1MB.Error(), formFileHeader.Size),
+                })
+        }</span>
+
+        // Find the content type of the uploaded file.
+        <span class="cov8" title="1">contentType, err := DetectContentType(formFileObject)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", nil, c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: ErrOpenFile.Error(),
+                })
+        }</span>
+
+        // Check if the uploaded file is appropriate type.
+        <span class="cov8" title="1">if !slices.Contains(acceptedImageTypes, contentType) </span><span class="cov8" title="1">{
+                return "", nil, c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: fmt.Sprintf("%s. Submitted file is %s", ErrUnsupportedFile.Error(), contentType),
+                })
+        }</span>
+
+        // Reset file seek.
+        <span class="cov8" title="1">if _, err = formFileObject.Seek(0, io.SeekStart); err != nil </span><span class="cov0" title="0">{
+                log.Printf("handler reset file seek: %#v\n", err)
+                return "", nil, c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: http.StatusText(http.StatusInternalServerError),
+                })
+        }</span>
+
+        // Read file content.
+        <span class="cov8" title="1">byteBuffer := make([]byte, formFileHeader.Size)
+        _, err = bufio.NewReader(formFileObject).Read(byteBuffer)
+        if err != nil &amp;&amp; err != io.EOF </span><span class="cov0" title="0">{
+                log.Printf("handler read file: %#v\n", err)
+                return "", nil, c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: http.StatusText(http.StatusInternalServerError),
+                })
+        }</span>
+
+        <span class="cov8" title="1">return contentType, byteBuffer, nil</span>
+}
+
+// convertHandler Convert image from PNG to JPEG.
+func convertHandler(c echo.Context) error <span class="cov8" title="1">{
+        imageFormName := "file"
+        acceptedImageTypes := []string{"image/png"}
+        outputImageJPEGQuality := 95
+
+        // Capture form data.
+        imageType, imageFile, _ := getImageFromRequest(c, imageFormName, acceptedImageTypes)
+        if imageFile == nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        // Init image processing.
+        <span class="cov8" title="1">imaging, err := NewImaging(imageType, imageFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: err.Error(),
+                })
+        }</span>
+
+        // Convert image to JPEG.
+        <span class="cov8" title="1">output, err := imaging.EncodeToJPEG(outputImageJPEGQuality)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("handler convert image encode: %#v\n", err)
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: ErrFailedToExportImage.Error(),
+                })
+        }</span>
+
+        // Write image to response.
+        <span class="cov8" title="1">c.Response().Header().Set("Content-Type", "image/jpeg")
+        c.Response().WriteHeader(200)
+        c.Response().Write(output)
+        return nil</span>
+}
+
+// resizeHandler Resize image to specified dimensions.
+func resizeHandler(c echo.Context) error <span class="cov8" title="1">{
+        imageFormName := "file"
+        acceptedImageTypes := []string{"image/png", "image/jpeg"}
+        outputImageJPEGQuality := 95
+        outputImagePNGQuality := 3
+
+        // Capture form data.
+        resizeWidth, _ := strconv.Atoi(c.FormValue("width"))
+        resizeHeight, _ := strconv.Atoi(c.FormValue("height"))
+        imageType, imageFile, _ := getImageFromRequest(c, imageFormName, acceptedImageTypes)
+        if imageFile == nil </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        // Init image processing.
+        <span class="cov8" title="1">imaging, err := NewImaging(imageType, imageFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: err.Error(),
+                })
+        }</span>
+
+        // Resize image.
+        <span class="cov8" title="1">if err = imaging.Resize(resizeWidth, resizeHeight); err != nil </span><span class="cov8" title="1">{
+                return c.JSON(http.StatusUnprocessableEntity, HTTPErrorResponse{
+                        Message: err.Error(),
+                })
+        }</span>
+
+        // Encode image
+        <span class="cov8" title="1">var output []byte
+        switch imageType </span>{
+        case "image/png":<span class="cov8" title="1">
+                output, err = imaging.EncodeToPNG(outputImagePNGQuality)</span>
+        case "image/jpeg":<span class="cov8" title="1">
+                fallthrough</span>
+        default:<span class="cov8" title="1">
+                output, err = imaging.EncodeToJPEG(outputImageJPEGQuality)</span>
+        }
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                log.Printf("handler convert image encode: %#v\n", err)
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: ErrImageProcessingFailed.Error(),
+                })
+        }</span>
+
+        // Write image to response.
+        <span class="cov8" title="1">c.Response().Header().Set("Content-Type", imageType)
+        c.Response().WriteHeader(200)
+        c.Response().Write(output)
+        return nil</span>
+}
+
+// compressHandler Compress image.
+func compressHandler(c echo.Context) error <span class="cov8" title="1">{
+        imageFormName := "file"
+        acceptedImageTypes := []string{"image/png", "image/jpeg"}
+        outputImageJPEGQuality := 80
+        outputImagePNGQuality := 9
+
+        // Capture form data.
+        imageType, imageFile, _ := getImageFromRequest(c, imageFormName, acceptedImageTypes)
+        if imageFile == nil </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        // Init image processing.
+        <span class="cov8" title="1">imaging, err := NewImaging(imageType, imageFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: err.Error(),
+                })
+        }</span>
+
+        // Encode image.
+        <span class="cov8" title="1">var output []byte
+        switch imageType </span>{
+        case "image/png":<span class="cov8" title="1">
+                output, err = imaging.EncodeToPNG(outputImagePNGQuality)</span>
+        case "image/jpeg":<span class="cov8" title="1">
+                fallthrough</span>
+        default:<span class="cov8" title="1">
+                output, err = imaging.EncodeToJPEG(outputImageJPEGQuality)</span>
+        }
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                log.Printf("handler convert image encode: %#v\n", err)
+                return c.JSON(http.StatusInternalServerError, HTTPErrorResponse{
+                        Message: ErrImageProcessingFailed.Error(),
+                })
+        }</span>
+
+        // Write image to response.
+        <span class="cov8" title="1">c.Response().Header().Set("Content-Type", imageType)
+        c.Response().WriteHeader(200)
+        c.Response().Write(output)
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "errors"
+        "fmt"
+        "gocv.io/x/gocv"
+        "image"
+        "slices"
+)
+
+const (
+        minResize = 10
+        maxResize = 1000
+)
+
+var (
+        ErrFailedToReadImage      = errors.New("failed to read image")
+        ErrFailedToExportImage    = errors.New("failed to export image")
+        ErrInvalidResizeDimension = fmt.Errorf("invalid resize dimension. Must be between %d and %d", minResize, maxResize)
+        ErrUnknownImageType       = errors.New("unknown image type")
+)
+
+type Imaging struct {
+        // Image mime type. i.e. image/png, image/jpeg
+        Type string
+        // OpenCV Mat
+        Mat gocv.Mat
+}
+
+// Resize image to specified width and height.
+// width, height: 10-1000
+func (i *Imaging) Resize(width, height int) error <span class="cov8" title="1">{
+        if width &lt; minResize || width &gt; maxResize || height &lt; minResize || height &gt; maxResize </span><span class="cov8" title="1">{
+                return ErrInvalidResizeDimension
+        }</span>
+
+        <span class="cov8" title="1">gocv.Resize(i.Mat, &amp;i.Mat, image.Point{X: width, Y: height}, 0, 0, gocv.InterpolationDefault)
+        return nil</span>
+}
+
+// EncodeToJPEG write to JPEG.
+// quality: 0-100
+func (i *Imaging) EncodeToJPEG(quality int) ([]byte, error) <span class="cov8" title="1">{
+        buffer, err := gocv.IMEncodeWithParams(gocv.JPEGFileExt, i.Mat, []int{gocv.IMWriteJpegQuality, quality})
+        if err != nil || buffer == nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("%w: %s", ErrFailedToExportImage, err)
+        }</span>
+        <span class="cov8" title="1">defer buffer.Close()
+
+        // Prevent segmentation fault error: https://github.com/hybridgroup/gocv/issues/1005
+        newBuffer := make([]byte, buffer.Len())
+        copy(newBuffer, buffer.GetBytes())
+        return newBuffer, nil</span>
+}
+
+// EncodeToPNG write to PNG.
+// quality: 0-9
+func (i *Imaging) EncodeToPNG(quality int) ([]byte, error) <span class="cov8" title="1">{
+        buffer, err := gocv.IMEncodeWithParams(gocv.PNGFileExt, i.Mat, []int{gocv.IMWritePngCompression, quality})
+        if err != nil || buffer == nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("%w: %s", ErrFailedToExportImage, err)
+        }</span>
+        <span class="cov8" title="1">defer buffer.Close()
+
+        // Prevent segmentation fault error: https://github.com/hybridgroup/gocv/issues/1005
+        newBuffer := make([]byte, buffer.Len())
+        copy(newBuffer, buffer.GetBytes())
+        return newBuffer, nil</span>
+}
+
+// NewImaging creates new Imaging object for processing.
+func NewImaging(imageType string, imageFile []byte) (*Imaging, error) <span class="cov8" title="1">{
+        if !slices.Contains([]string{"image/png", "image/jpeg"}, imageType) </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("%w: %s", ErrUnknownImageType, imageType)
+        }</span>
+
+        <span class="cov8" title="1">decode, err := gocv.IMDecode(imageFile, gocv.IMReadUnchanged)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("%w: %s", ErrFailedToReadImage, err)
+        }</span>
+
+        <span class="cov8" title="1">return &amp;Imaging{
+                Type: imageType,
+                Mat:  decode,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "context"
+        "errors"
+        "github.com/labstack/echo/v4"
+        "github.com/labstack/echo/v4/middleware"
+        echoLog "github.com/labstack/gommon/log"
+        "net/http"
+        "os"
+        "os/signal"
+        "time"
+)
+
+func main() <span class="cov0" title="0">{
+        // Setup
+        e := echo.New()
+        e.Logger.SetLevel(echoLog.INFO)
+        e.Use(middleware.Recover())
+        e.Use(middleware.BodyLimit("2M"))
+        e.Use(middleware.Logger())
+        e.POST("/v1/convert", convertHandler)
+        e.POST("/v1/resize", resizeHandler)
+        e.POST("/v1/compress", compressHandler)
+
+        ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+        defer stop()
+
+        // Start server
+        go func() </span><span class="cov0" title="0">{
+                if err := e.Start(":3000"); err != nil &amp;&amp; !errors.Is(err, http.ErrServerClosed) </span><span class="cov0" title="0">{
+                        e.Logger.Fatal("shutting down the server")
+                }</span>
+        }()
+
+        <span class="cov0" title="0">&lt;-ctx.Done()
+        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+        defer cancel()
+        if err := e.Shutdown(ctx); err != nil </span><span class="cov0" title="0">{
+                e.Logger.Fatal(err)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package main
+
+import (
+        "bufio"
+        "fmt"
+        "mime/multipart"
+        "net/http"
+)
+
+type HTTPErrorResponse struct {
+        Message string `json:"message"`
+}
+
+// DetectContentType detects the content type of the uploaded file.
+func DetectContentType(file multipart.File) (string, error) <span class="cov8" title="1">{
+        peekBuff := bufio.NewReader(file)
+        peekSniff, err := peekBuff.Peek(512)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("%w: %s", ErrOpenFile, err)
+        }</span>
+
+        <span class="cov8" title="1">return http.DetectContentType(peekSniff), nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -1,0 +1,1 @@
+FROM docker.io/gocv/opencv:4.8.1

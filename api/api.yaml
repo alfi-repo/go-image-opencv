@@ -1,0 +1,184 @@
+openapi: 3.1.0
+x-stoplight:
+  id: urcobt5ldxz12
+info:
+  title: Image Tool
+  version: '1.0'
+  summary: 'Image convert, resize, and compress'
+  license:
+    name: MIT
+    url: 'https://opensource.org/license/mit'
+  termsOfService: ''
+  contact:
+    name: Alfian
+    url: 'https://github.com/alfi-repo'
+servers:
+  - url: 'http://localhost:3000'
+    description: local
+paths:
+  /v1/convert:
+    post:
+      summary: Image Convert
+      tags:
+        - Image Convert
+      responses:
+        '200':
+          $ref: '#/components/responses/JPEGResponse'
+        '413':
+          $ref: '#/components/responses/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+      operationId: post-convert
+      x-stoplight:
+        id: bjhomiiedyqp3
+      description: Convert PNG to JPEG.
+      requestBody:
+        $ref: '#/components/requestBodies/ConvertRequest'
+    parameters: []
+  /v1/resize:
+    post:
+      summary: Image Resize
+      tags:
+        - Image Resize
+      responses:
+        '200':
+          $ref: '#/components/responses/PNGorJPEGResponse'
+        '413':
+          $ref: '#/components/responses/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+      operationId: post-resize
+      x-stoplight:
+        id: uh2juedrxjtin
+      description: Resize image to specified dimensions.
+      requestBody:
+        $ref: '#/components/requestBodies/ResizeRequest'
+    parameters: []
+  /v1/compress:
+    post:
+      summary: Image Compress
+      tags:
+        - Image Compress
+      responses:
+        '200':
+          $ref: '#/components/responses/PNGorJPEGResponse'
+        '413':
+          $ref: '#/components/responses/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+      operationId: post-compress
+      x-stoplight:
+        id: 4lb5qkfc556gm
+      description: Compress image
+      requestBody:
+        $ref: '#/components/requestBodies/CompressRequest'
+    parameters: []
+components:
+  schemas: {}
+  securitySchemes: {}
+  requestBodies:
+    ConvertRequest:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                x-stoplight:
+                  id: xh9i26w978337
+                format: binary
+                description: PNG file. Maximum 1MB
+    ResizeRequest:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+              - width
+              - length
+            properties:
+              file:
+                type: string
+                x-stoplight:
+                  id: k4lznq6arji1l
+                format: binary
+                description: PNG/JPEG file. Maximum 1MB
+              width:
+                type: integer
+                x-stoplight:
+                  id: 10lix2lwl4spt
+                minimum: 10
+                maximum: 10000
+              length:
+                type: integer
+                x-stoplight:
+                  id: 3mj036q7fld9q
+                minimum: 10
+                maximum: 10000
+    CompressRequest:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                x-stoplight:
+                  id: frzzedlannf6g
+                format: binary
+                description: PNG/JPEG file. Maximum 1MB
+  responses:
+    PNGorJPEGResponse:
+      description: ''
+      content:
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+    JPEGResponse:
+      description: ''
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+    ErrorResponse:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                x-stoplight:
+                  id: gy52oe4clsa26
+          examples:
+            Invalid image format:
+              value:
+                message: File not a PNG
+            Invalid image size:
+              value:
+                message: File larger than 1MB
+            Post too large:
+              value:
+                message: Request Entity Too Large
+            Internal server error:
+              value:
+                message: Internal Server Error
