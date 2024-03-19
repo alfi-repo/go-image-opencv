@@ -44,7 +44,8 @@ make stop
 
 ### API Documentation (OpenAPI 3.1)
 
-Please refer to `/api` directory.
+Please refer to `/api` directory.  
+Preview online: [api doc](https://elements-demo.stoplight.io/?spec=https://raw.githubusercontent.com/alfi-repo/go-image-opencv/main/api/api.yaml)
 
 ### Technologies
 
